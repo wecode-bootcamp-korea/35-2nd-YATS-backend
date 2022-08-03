@@ -20,5 +20,3 @@ class Book(TimeStampModel):
 
     class Meta:
         db_table = 'books'
-
-
