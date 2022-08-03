@@ -338,4 +338,40 @@ class StayDetailTest(TestCase):
                     ]
                 }
             }
-        ) 
+        )
+
+        def test_staylistview_get_succees(self):
+            client = Client()
+
+            response = client.get('/findstay')
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(),
+                {
+                    "result": [
+                        {
+                        "stay_id"        : 1,
+                        "stay_name"      : "monogarden",
+                        "stay_type"      : "RENTAL HOUSE",
+                        "stay_latitude"  : "126.3023260000",
+                        "stay_longitude" : "33.4482913000",
+                        "stay_address"   : {
+                            "stay_region"   : "제주",
+                            "stay_district" : "서귀포시"
+                        },
+                        "stay_price" : {
+                            "low_price"  : "2000000.00",
+                            "high_price" : "2900000.00"
+                        },
+                        "stay_capacitiy" : {
+                            "min_capacity" : 1,
+                            "max_capacity" : 3
+                        },
+                        "stay_image" : [
+                            {"id" : 1, "url" : "stayImage1"},
+                            {"id" : 2, "url" : "stayImage2"},
+                            {"id" : 3, "url" : "stayImage3"},
+                        ]
+                    }], "totalcount" : 1
+                }
+            )
