@@ -46,9 +46,8 @@ INSTALLED_APPS = [
     'books',
     'likes',
     'stays',
-    'core',
-    'django_extensions', 
-
+    'core', 
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
