@@ -31,3 +31,17 @@ class LikeView(View):
         except Stay.DoesNotExist:
             return JsonResponse({'message': 'INVALID_STAY'}, status=404)
 
+    def get(self, request):
+        user = request.user
+
+        likes = Like.objects.filter(user=user).select_related("stay")
+
+        results = [{
+            'stay_id'  : like.stay.id,
+            'stay_name': like.stay.name,
+            'address'  : like.stay.address
+            } for like in likes]
+
+        return JsonResponse({'message': 'SUCCESS', 'results': results}, status=200)
+            
+
