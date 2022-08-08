@@ -38,3 +38,18 @@ class BookView(View):
             return JsonResponse({'message': 'KEY_ERROR'}, status=400)
         except Room.DoesNotExist:
             return JsonResponse({'message': 'INVALID_ROOM_ID'}, status=400)
+
+class CancelView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            data        = json.loads(request.body)
+            user        = request.user
+            book_number = data['book_number']
+
+            Book.objects.filter(user=user, book_number=book_number).update(status_id = 2)
+        
+        except Book.DoesNotExist:
+            return JsonResponse({'message': 'INVALID_BOOK_NUMBER'}, status=404)
+        except KeyError:
+            return JsonResponse({'message': 'KEY_ERROR'}, status=400)
