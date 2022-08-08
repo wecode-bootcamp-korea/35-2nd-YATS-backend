@@ -22,10 +22,18 @@ class Theme(models.Model):
     name   = models.CharField(max_length=45)
     icon   = models.CharField(max_length=45)
     detail = models.CharField(max_length=200)
-    stay   = models.ManyToManyField('Stay', related_name='themes')
+    stay   = models.ManyToManyField('Stay', through='StayTheme', related_name='themes')
 
     class Meta:
         db_table = 'themes'
+
+class StayTheme(models.Model):
+    stay  = models.ForeignKey(Stay, on_delete=models.CASCADE)
+    theme = models.ForeignKey(Theme, on_delete=models.CASCADE)
+    
+    class Meta:
+        db_table = 'stay_themes'
+
 
 class StayType(models.Model):
     name = models.CharField(max_length=45)
@@ -57,24 +65,45 @@ class RoomType(models.Model):
 class Feature(models.Model):
     name = models.CharField(max_length=45)
     icon = models.CharField(max_length=200)
-    room = models.ManyToManyField('Room', related_name='features')
+    room = models.ManyToManyField('Room', through='FeatureRoom', related_name='features')
 
     class Meta:
         db_table = 'features'
 
+class FeatureRoom(models.Model):
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE)
+    room    = models.ForeignKey(Room, on_delete=models.CASCADE)
+    
+    class Meta:
+        db_table = 'feature_rooms'
+
 class Amenity(models.Model):
     name = models.CharField(max_length=45)
-    room = models.ManyToManyField('Room', related_name='amenities')
+    room = models.ManyToManyField('Room', through='AmenityRoom', related_name='amenities')
 
     class Meta:
         db_table = 'amenities'
 
+class AmenityRoom(models.Model):
+    amenity = models.ForeignKey(Amenity, on_delete=models.CASCADE)
+    room    = models.ForeignKey(Room, on_delete=models.CASCADE)
+    
+    class Meta:
+        db_table = 'amenity_rooms'
+
 class AddOn(models.Model):
     name = models.CharField(max_length=45)
-    room = models.ManyToManyField('Room', related_name='add_ons')
+    room = models.ManyToManyField('Room', through='AddOnRoom', related_name='add_ons')
 
     class Meta:
         db_table = 'add_ons'
+
+class AddOnRoom(models.Model):
+    addon = models.ForeignKey(AddOn, on_delete=models.CASCADE)
+    room  = models.ForeignKey(Room, on_delete=models.CASCADE)
+    
+    class Meta:
+        db_table = 'addon_rooms'
 
 class RoomOption(models.Model):
     price  = models.DecimalField(max_digits=15, decimal_places=2)
