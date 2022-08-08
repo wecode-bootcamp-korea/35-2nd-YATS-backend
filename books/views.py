@@ -39,6 +39,26 @@ class BookView(View):
         except Room.DoesNotExist:
             return JsonResponse({'message': 'INVALID_ROOM_ID'}, status=400)
 
+    @login_decorator
+    def get(self, request):
+        user      = request.user
+        status_id = request.GET.get('status_id', 1)
+        books     = Book.objects.filter(user=user, status_id=status_id)
+        
+        results = [{
+                'name'         : user.korean_name,
+                'email'        : user.email,
+                'book_number'  : book.book_number,
+                'room_name'    : book.room.name,
+                'check_in'     : book.check_in,
+                'check_out'    : book.check_out,
+                'status'       : book.status.status,
+                'booked_date'  : book.created_at,
+                'canceled_date': book.updated_at
+            }for book in books]
+
+        return JsonResponse({'message': 'SUCCESS', 'results': results}, status=200)
+
 class CancelView(View):
     @login_decorator
     def post(self, request):
