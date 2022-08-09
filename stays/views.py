@@ -63,3 +63,51 @@ class StayDetailView(View):
 
         except Stay.DoesNotExist:
             return JsonResponse({'message' : 'Dose Not Exist'}, status=404)
+
+class RoomDetailView(View):
+    def get(self, request, room_name):
+        try:
+            room = Room.objects.prefetch_related(
+                'features',
+                'add_ons',
+                'amenities',
+                'roomoption_set'
+            ).get(name=room_name)
+                
+            result  = [{
+                'room_name'   : room.name,
+                'content'     : room.content,
+                'checkin'     : room.checkin,
+                'checkout'    : room.checkout,
+                'max_capacity': room.max_capacity,
+                'min_capacity': room.min_capacity,
+                'area'        : room.area,
+                'bed'         : room.bed,
+                'features'    : [{
+                    'id'  : feature.id,
+                    'name': feature.name,
+                    'icon': feature.icon
+                    } for feature in room.features.all()],
+                'amenities' : [{
+                    'id'  : amenity.id,
+                    'name': amenity.name,
+                    } for amenity in room.amenities.all()],
+                'add_ons' : [{
+                    'id'  : addon.id,
+                    'name': addon.name
+                    } for addon in room.add_ons.all()],
+            }]
+                
+            faq = {
+                'room_name'   : room.name,
+                'min_capacity': room.min_capacity,
+                'max_capacity': room.max_capacity,
+                'price'       : [{
+                    option.option.season: option.price
+                }for option in room.roomoption_set.all()]
+            }
+
+            return JsonResponse({'result' : result, 'FAQ' : faq}, status=200)
+
+        except Room.DoesNotExist: 
+            return JsonResponse({'message' : 'Dose Not Exist'}, status=404)
