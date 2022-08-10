@@ -1,11 +1,15 @@
-from django.http  import JsonResponse
-from django.views import View
-from django.db.models import Q, Max, Min, Count, Prefetch
-
+import boto3
 import pandas as pd
 
-from .models      import Stay, StayImage, Room , RoomOption
+from django.conf      import settings
+from django.http      import JsonResponse
+from django.views     import View
+from django.db.models import Q, Max, Min, Count, Prefetch
+
 from books.models import Book
+from core.utils   import ImageUploader, ImageHandler
+from .models      import StayType, Theme, Stay, StayImage, RoomType, RoomImage, RoomOption, Room, AddOn, Amenity, Feature
+
 
 class StayDetailView(View):
     def get(self, request, stay_id):
@@ -215,3 +219,146 @@ class FindStayView(View):
 
         except KeyError:
             return JsonResponse({'message' : 'KEY ERROR'}, status=400)
+
+
+s3_client = boto3.client(
+        's3',
+        aws_access_key_id     = settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key = settings.AWS_SCERET_ACCESS_KEY
+    )
+
+image_uploader = ImageUploader(s3_client)
+
+class EnterStayView(View):
+    def post(self, request):
+        data = request.POST
+        
+        try: 
+            stay_name       = data['stay_name']
+            address         = data['address']
+            latitude        = data['latitude']
+            longitude       = data['longitude']
+            keyword         = data['keyword']
+            summary         = data['summary']
+            content_top     = data['content_top']
+            content_bottom  = data['content_bottom']
+            phone_number    = data['phone']
+            email           = data['email']
+            stay_type_name  = data['types']
+            stay_type       = StayType.objects.get(name=stay_type_name)
+            theme_list      = data['themes']
+            stay_image_list = request.FILES.getlist('stay_images')
+
+            stay1, is_created = Stay.objects.get_or_create(
+                name           = stay_name,
+                defaults={
+                    'address'        : address,
+                    'latitude'       : latitude,
+                    'longitude'      : longitude,
+                    'keyword'        : keyword,
+                    'summary'        : summary,
+                    'content_top'    : content_top,
+                    'content_bottom' : content_bottom,
+                    'phone_number'   : phone_number,
+                    'email'          : email,
+                    'stay_type'      : stay_type
+                }
+            )
+
+            if not is_created:
+                return JsonResponse({'message': 'STAY_NAME_DUPLICATE'}, status=400)
+
+            theme_list = theme_list.split(',')
+            
+            for theme in theme_list:
+                theme = theme.strip()
+                theme1 = Theme.objects.get(name=theme)
+                theme1.stay.add(stay1)
+
+            for stay_image in stay_image_list:
+                image_handler = ImageHandler(image_uploader, stay_image)
+                url           = image_handler.save()
+
+                StayImage.objects.create(
+                    image =  url,
+                    stay  = Stay.objects.get(name=stay_name)
+                )
+
+            return JsonResponse({'message': 'SUCCESS'}, status=200)
+        except KeyError:
+            return JsonResponse({'message': 'KEY_ERROR'}, status=400)
+
+      
+class EnterRoomView(View):   
+
+    def post(self, request):
+        room = request.POST
+        
+        try:
+            stay_name       = room['stay_name']
+            add_on_list     = room['add_on']
+            amenity_list    = room['amenity']
+            feature_list    = room['feature']
+            room_name       = room['room_name']
+            room_type       = room['room_type']
+            content         = room['content']
+            area            = room['area']
+            bed             = room['bed']
+            checkin         = room['checkin']
+            checkout        = room['checkout']
+            min_capacity    = room['min_capacity']
+            max_capacity    = room['max_capacity']
+            room_image_list = request.FILES.getlist('room_images')
+            week_price      = room['week_price']
+            weekend_price   = room['weekend_price']
+            peek_price      = room['peek_price']
+            price           = [week_price, weekend_price, peek_price]
+
+            room1 = Room.objects.create(
+                name         = room_name,
+                content      = content,
+                min_capacity = min_capacity,
+                max_capacity = max_capacity,
+                checkin      = checkin,
+                checkout     = checkout,
+                area         = area,
+                bed          = bed,
+                stay         = Stay.objects.get(name=stay_name),
+                room_type    = RoomType.objects.get(name=room_type)
+            )
+
+            for room_image in room_image_list:
+                image_handler = ImageHandler(image_uploader,room_image)
+                url           = image_handler.save()
+
+                RoomImage.objects.create(
+                    image = url,
+                    room  = Room.objects.get(name=room_name)
+                )
+
+            bulk_list = []
+
+            for i in range(3):
+                bulk_list.append(RoomOption(room=room1, option_id=i+1, price=price[i]))
+                
+            RoomOption.objects.bulk_create(bulk_list)
+
+            add_on_list  = add_on_list.split(',')
+            amenity_list = amenity_list.split(',')
+            feature_list = feature_list.split(',')            
+
+            for add_on in add_on_list:
+                add_on1 = AddOn.objects.get(name=add_on)
+                add_on1.room.add(room1)
+
+            for amenity in amenity_list:
+                amenity1 = Amenity.objects.get(name=amenity)
+                amenity1.room.add(room1)
+
+            for feature in feature_list:
+                feature1 = Feature.objects.get(name=feature)
+                feature1.room.add(room1)
+
+            return JsonResponse({'message': 'SUCCESS'},status= 200)
+        except Room.DoesNotExist:
+            return JsonResponse({'message': 'INVALID_ROOM_NAME'},status= 400)
