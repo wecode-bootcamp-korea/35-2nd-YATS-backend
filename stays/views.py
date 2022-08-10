@@ -1,10 +1,18 @@
+import boto3
+import uuid
+
+from django.conf  import settings
 from django.http  import JsonResponse
 from django.views import View
 from django.db.models import Min, Max, Prefetch
 
-from .models import RoomOption, Stay, StayImage, Room
+from stays.models import StayType, Theme, Stay, StayImage, RoomType, RoomImage, RoomOption, Room, AddOn, Amenity, Feature
+from core.utils   import ImageUploader, ImageHandler
 
 class StayDetailView(View):
+    """
+    OOP 적용-!
+    """
     def get(self, request, stay_id):
         try:
             stay = Stay.objects.select_related(
@@ -63,23 +71,20 @@ class StayDetailView(View):
 
         except Stay.DoesNotExist:
             return JsonResponse({'message' : 'Dose Not Exist'}, status=404)
-import boto3
-import uuid
-
-from django.views import View
-from django.conf  import settings
-from django.http  import JsonResponse
-
-from stays.models import StayType, Theme, Stay, StayImage, RoomType, RoomImage, RoomOption, Room, AddOn, Amenity, Feature
 
 
-class EnterView(View):
-    s3_client = boto3.client(
+
+
+s3_client = boto3.client(
         's3',
         aws_access_key_id     = settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key = settings.AWS_SCERET_ACCESS_KEY
     )
 
+image_uploader = ImageUploader(s3_client)
+
+
+class EnterView(View):
     def post(self, request):
         data = request.POST
         
@@ -117,18 +122,12 @@ class EnterView(View):
                 theme1.stay.add(stay1)
 
             for stay_image in stay_image_list:
-                stay_image_name = str(uuid.uuid4())
-                self.s3_client.upload_fileobj(
-                    stay_image, 
-                    "yatsbucket",
-                    stay_image_name,
-                    ExtraArgs={
-                        "ContentType": stay_image.content_type
-                    }
-                ) 
+                image_handler = ImageHandler(image_uploader, stay_image)
+                url           = image_handler.save()
+
                 StayImage.objects.create(
-                    image = 'https://yatsbucket.s3.ap-northeast-2.amazonaws.com/' + stay_image_name,
-                    stay = Stay.objects.get(name=stay_name)
+                    image = url,
+                    stay  = Stay.objects.get(name=stay_name)
                 )
 
             rooms           = data['rooms']
