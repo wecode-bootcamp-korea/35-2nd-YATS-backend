@@ -6,29 +6,24 @@ from django.views import View
 from django.conf  import settings
 
 from users.models import User
+from core.utils   import KakaoAPI
 
 class KakaoCallBackView(View):
     def get(self, request):
-        kakao_token_api = "https://kauth.kakao.com/oauth/token"
         code = request.GET.get("code")
 
-        data = {
-            "grant_type"   : "authorization_code",
-            "client_id"    : settings.KAKAO_REST_API_KEY,
-            "redirect_uri" : settings.KAKAO_REDIRECT_URI,
-            "client_secret": settings.KAKAO_SECRET_KEY,
-            "code"         : code
-        }
+        kakao_api = KakaoAPI(
+                        settings.KAKAO_REST_API_KEY, 
+                        settings.KAKAO_REDIRECT_URI, 
+                        settings.KAKAO_SECRET_KEY
+                        )
+        
+        kakao_token     = kakao_api.get_token(code)
+        kakao_user_info = kakao_api.get_user_info(kakao_token)
 
-        response       = requests.post(kakao_token_api, data=data).json()
-        access_token   = response['access_token']
-        kakao_user_api = "https://kapi.kakao.com/v2/user/me"
-        header         = {"Authorization": f"Bearer {access_token}"}
-        user_info      = requests.get(kakao_user_api, headers=header).json()
-
-        kakao_id       = user_info['id']
-        kakao_email    = user_info['kakao_account']['email']
-        kakao_nickname = user_info['properties']['nickname']
+        kakao_id       = kakao_user_info['id']
+        kakao_email    = kakao_user_info['kakao_account']['email']
+        kakao_nickname = kakao_user_info['properties']['nickname']
 
         user, is_created = User.objects.get_or_create(
             kakao_id = kakao_id,
