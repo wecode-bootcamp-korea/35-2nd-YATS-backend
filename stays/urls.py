@@ -1,7 +1,9 @@
 from django.urls import path
 
-from stays.views import StayDetailView
+from stays.views import StayDetailView, EnterView
 
-urlpatterns = {
+urlpatterns = [
     path('/<int:stay_id>', StayDetailView.as_view()),
-}
+    path('/<int:stay_id>', StayDetailView.as_view()),
+    path('/entering', EnterView.as_view()),
+]
