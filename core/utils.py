@@ -37,7 +37,9 @@ class ImageUploader:
         return 'https://yatsbucket.s3.ap-northeast-2.amazonaws.com/' + image_name,   
 
 class ImageHandler:
-    def __init__(self, client):
+    def __init__(self, client, file):
         self.client = client
+        self.file   = file
 
-    # def save(self, ):
+    def save(self):
+        return self.client.upload(self.file)
