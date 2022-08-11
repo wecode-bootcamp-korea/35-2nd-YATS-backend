@@ -10,7 +10,6 @@ from books.models import Book
 from core.utils   import ImageUploader, ImageHandler
 from .models      import StayType, Theme, Stay, StayImage, RoomType, RoomImage, RoomOption, Room, AddOn, Amenity, Feature
 
-
 class StayDetailView(View):
     def get(self, request, stay_id):
         try:
@@ -48,6 +47,10 @@ class StayDetailView(View):
                     'room_type'         : room.room_type.name,
                     'room_min_capacity' : room.min_capacity,
                     'room_max_capacity' : room.max_capacity,
+                    'room_image'        : [{
+                        'image_id'  : image.id,
+                        'image_url' : image.image
+                    } for image in room.roomimage_set.all()],
                     'room_option'       : { roomoption.option.season : roomoption.price for roomoption in room.roomoptions},
                     'room_bad'          : room.bed,
                     'room_price'        : (room.roomoption_set.aggregate(price=Min('price')))['price']
@@ -82,6 +85,7 @@ class RoomDetailView(View):
             ).get(name=room_name)
                 
             result  = [{
+                'room_id'     : room.id,
                 'room_name'   : room.name,
                 'content'     : room.content,
                 'checkin'     : room.checkin,
@@ -103,6 +107,10 @@ class RoomDetailView(View):
                     'id'  : addon.id,
                     'name': addon.name
                     } for addon in room.add_ons.all()],
+                'room_image'        : [{
+                        'image_id'  : image.id,
+                        'image_url' : image.image
+                    } for image in room.roomimage_set.all()],
             }]
                 
             faq = {
@@ -123,7 +131,7 @@ class RoomDetailView(View):
 class FindStayView(View):
     def get(self, request):
         try:
-            address    = request.GET.get('address', None)
+            search     = request.GET.get('search', None)
             region     = request.GET.get('region' , None)
             checkin    = request.GET.get('checkin', None)
             checkout   = request.GET.get('checkout', None)
@@ -136,7 +144,7 @@ class FindStayView(View):
 
             filter_options = {
                 'stay_type' : 'stay_type__name__in',
-                'themes'    : 'themes__name__in'
+                'themes'    : 'themes__name__in',
             }
 
             filter_set = {
@@ -146,8 +154,12 @@ class FindStayView(View):
             searchfilter = Q()
             bookdate     = Q()
 
-            if address:
-                searchfilter &= Q(address__icontains=address)
+
+            if search:
+                searchfilter &= Q(name__icontains=search)
+
+            if search:
+                searchfilter |= Q(address__icontains=search)
 
             if region:
                 searchfilter &= Q(address__startswith=region)
@@ -162,9 +174,9 @@ class FindStayView(View):
                 searchfilter &= Q(room__roomoption__price__lte=max_price)
             
             if checkin and checkout:
-                books          = Book.objects.all()
                 lookupdate     = pd.date_range(checkin, checkout) 
                 lookupdatelist = lookupdate.strftime("%Y%m%d").tolist()
+                books          = Book.objects.all()
                 
                 for book in books:
                     reserveddate     = pd.date_range(book.check_in, book.check_out)
@@ -180,6 +192,7 @@ class FindStayView(View):
                 'low_price'  : 'low_price',
                 'popular'    : '-count'
             }
+
 
             totalstay = (
                 Stay.objects
@@ -198,7 +211,8 @@ class FindStayView(View):
                     Prefetch('rooms__roomoption_set', RoomOption.objects.all(), to_attr="roomoptions"),
                 )    
             )
-            
+        
+
             stays = totalstay[offset:offset+limit]
             
             count = len(totalstay)
@@ -219,8 +233,6 @@ class FindStayView(View):
 
         except KeyError:
             return JsonResponse({'message' : 'KEY ERROR'}, status=400)
-
-
 s3_client = boto3.client(
         's3',
         aws_access_key_id     = settings.AWS_ACCESS_KEY_ID,
