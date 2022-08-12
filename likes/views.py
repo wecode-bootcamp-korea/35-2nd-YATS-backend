@@ -30,7 +30,8 @@ class LikeView(View):
             return JsonResponse({'message': 'KEY_ERROR'}, status=400)
         except Stay.DoesNotExist:
             return JsonResponse({'message': 'INVALID_STAY'}, status=404)
-
+            
+    @login_decorator
     def get(self, request):
         user = request.user
 
