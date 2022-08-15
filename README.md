@@ -1,7 +1,6 @@
 # OIL OF YATS Project
 
 - [스테이폴리오](https://www.stayfolio.com/en) 홈페이지를 클론 코딩하며 기본적인 user flow를 기반으로한 기능 구현이 목표
-- 숙소 리스트 검색 및 필터 정렬 구현
 
 
 ### Team YATS 개발 인원 및 기간
@@ -13,10 +12,6 @@
 [Back-end](https://github.com/wecode-bootcamp-korea/35-2nd-YATS-backend) : 홍현진(PM), 성바울, 이정훈 
 
 ### YATS Back-end
-- [이정훈](https://github.com/fkelfk)
-  - 숙소 리스트
-  - 숙소 상세페이지
-  - 방 상세페이지
 
 - [홍현진](https://github.com/hjz1010)
   - 입점문의 
@@ -27,6 +22,12 @@
 - [성바울](https://github.com/bawoool)
   - 카카오 소셜로그인
   - 메인페이지
+
+- [이정훈](https://github.com/fkelfk)
+  - 숙소 리스트
+  - 숙소 상세페이지
+  - 방 상세페이지
+
   
   
 ### 적용 기술
